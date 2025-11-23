@@ -44,7 +44,7 @@ async def process_book_generation(job_id: str, filename: str, specs: dict, segme
         jobs[job_id]["message"] = "Starting ingestion..."
         
         # 1. Ingestion
-        file_path = f"temp/{filename}"
+        file_path = f"source_files/{filename}"
         source_text = await ingestion_service.ingest_pdf(
             file_path,
             section_description=segmentation.get("sectionDescription"),
@@ -103,14 +103,17 @@ async def process_book_generation(job_id: str, filename: str, specs: dict, segme
         jobs[job_id]["message"] = f"Error: {str(e)}"
         print(f"Job {job_id} failed: {e}")
     finally:
-        # Cleanup temporary file
-        file_path = f"temp/{filename}"
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-                print(f"Cleaned up temporary file: {file_path}")
-            except Exception as cleanup_error:
-                print(f"Failed to cleanup file {file_path}: {cleanup_error}")
+        # Create manifest for cleanup
+        manifest = {
+            "pdf_path": jobs[job_id].get("file_path"),
+            "images": [p.get("image_path") for p in pages if p.get("image_path")]
+        }
+        manifest_path = f"generated_books/manifest_{job_id}.json"
+        with open(manifest_path, "w") as f:
+            json.dump(manifest, f)
+            
+        # NOTE: We no longer delete the source file here to allow for "Recent Source Files" download.
+        # It will be deleted via the explicit DELETE endpoint.
 
 @app.post("/generate")
 async def generate_book(
@@ -125,9 +128,9 @@ async def generate_book(
     pageStart: Annotated[int | None, Form()] = None,
     pageEnd: Annotated[int | None, Form()] = None
 ):
-    # Save uploaded file temporarily
-    os.makedirs("temp", exist_ok=True)
-    file_path = f"temp/{file.filename}"
+    # Save uploaded file to persistent source_files directory
+    os.makedirs("source_files", exist_ok=True)
+    file_path = f"source_files/{file.filename}"
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     
@@ -172,7 +175,8 @@ async def event_stream(job_id: str):
                 "status": job["status"],
                 "progress": job["progress"],
                 "message": job["message"],
-                "result_url": job.get("result_url")
+                "result_url": job.get("result_url"),
+                "book_title": job.get("book_title")
             }
             yield f"data: {json.dumps(data)}\n\n"
             
@@ -189,7 +193,67 @@ async def download_book(job_id: str):
         raise HTTPException(status_code=404, detail="Book not found or not ready")
     
     file_path = jobs[job_id].get("file_path")
+    book_title = jobs[job_id].get("book_title", "my_islamic_book")
+    
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
         
-    return FileResponse(file_path, filename="my_islamic_book.pdf", media_type="application/pdf")
+    # Sanitize filename
+    safe_title = "".join([c for c in book_title if c.isalpha() or c.isdigit() or c==' ']).rstrip()
+    filename = f"{safe_title}.pdf"
+        
+    return FileResponse(file_path, filename=filename, media_type="application/pdf")
+
+# --- Source File Management ---
+
+@app.get("/source_files/{filename}")
+async def download_source_file(filename: str):
+    file_path = f"source_files/{filename}"
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Source file not found")
+    return FileResponse(file_path, filename=filename)
+
+@app.delete("/source_files/{filename}")
+async def delete_source_file(filename: str):
+    file_path = f"source_files/{filename}"
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        return {"status": "deleted", "file": filename}
+    raise HTTPException(status_code=404, detail="Source file not found")
+
+# --- Generated Book Management ---
+
+@app.delete("/books/{job_id}")
+async def delete_book(job_id: str):
+    # 1. Try to find manifest
+    manifest_path = f"generated_books/manifest_{job_id}.json"
+    
+    if os.path.exists(manifest_path):
+        try:
+            with open(manifest_path, "r") as f:
+                manifest = json.load(f)
+            
+            # Delete PDF
+            pdf_path = manifest.get("pdf_path")
+            if pdf_path and os.path.exists(pdf_path):
+                os.remove(pdf_path)
+                
+            # Delete Images
+            for img_path in manifest.get("images", []):
+                if img_path and os.path.exists(img_path):
+                    os.remove(img_path)
+            
+            # Delete Manifest
+            os.remove(manifest_path)
+            
+            return {"status": "deleted", "job_id": job_id}
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error cleaning up book: {str(e)}")
+    else:
+        # Fallback: Try to find just the PDF if manifest missing
+        pdf_path = f"generated_books/book_{job_id}.pdf"
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+            return {"status": "deleted", "job_id": job_id, "note": "Manifest not found, deleted PDF only"}
+            
+        raise HTTPException(status_code=404, detail="Book resources not found")

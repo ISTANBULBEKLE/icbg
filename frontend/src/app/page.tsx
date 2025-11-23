@@ -25,6 +25,7 @@ export default function Home() {
   const [statusMessage, setStatusMessage] = useState('');
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [history, setHistory] = useState<Book[]>([]);
+  const [sourceHistory, setSourceHistory] = useState<{ name: string; date: string }[]>([]);
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -33,7 +34,16 @@ export default function Home() {
       try {
         setHistory(JSON.parse(savedHistory));
       } catch (e) {
-        console.error("Failed to parse history", e);
+        console.error("Failed to parse book history", e);
+      }
+    }
+
+    const savedSourceHistory = localStorage.getItem('sourceHistory');
+    if (savedSourceHistory) {
+      try {
+        setSourceHistory(JSON.parse(savedSourceHistory));
+      } catch (e) {
+        console.error("Failed to parse source history", e);
       }
     }
   }, []);
@@ -46,12 +56,48 @@ export default function Home() {
     });
   };
 
-  const handleDeleteBook = (id: string) => {
-    setHistory(prev => {
-      const newHistory = prev.filter(book => book.id !== id);
-      localStorage.setItem('bookHistory', JSON.stringify(newHistory));
+  const addToSourceHistory = (file: File) => {
+    const newSource = { name: file.name, date: new Date().toLocaleDateString() };
+    setSourceHistory(prev => {
+      // Avoid duplicates at the top
+      const filtered = prev.filter(item => item.name !== file.name);
+      const newHistory = [newSource, ...filtered].slice(0, 5);
+      localStorage.setItem('sourceHistory', JSON.stringify(newHistory));
       return newHistory;
     });
+  };
+
+  const handleFileSelect = (selectedFile: File) => {
+    setFile(selectedFile);
+    addToSourceHistory(selectedFile);
+  };
+
+  const handleDeleteBook = async (id: string) => {
+    try {
+      await fetch(`http://localhost:8000/books/${id}`, { method: 'DELETE' });
+      setHistory(prev => {
+        const newHistory = prev.filter(book => book.id !== id);
+        localStorage.setItem('bookHistory', JSON.stringify(newHistory));
+        return newHistory;
+      });
+    } catch (error) {
+      console.error("Failed to delete book:", error);
+      alert("Failed to delete book from server.");
+    }
+  };
+
+  const handleDeleteSourceFile = async (filename: string) => {
+    try {
+      await fetch(`http://localhost:8000/source_files/${filename}`, { method: 'DELETE' });
+      setSourceHistory(prev => {
+        const newHistory = prev.filter(item => item.name !== filename);
+        localStorage.setItem('sourceHistory', JSON.stringify(newHistory));
+        return newHistory;
+      });
+    } catch (error) {
+      console.error("Failed to delete source file:", error);
+      alert("Failed to delete source file from server.");
+    }
   };
 
   const handleReset = () => {
@@ -171,12 +217,17 @@ export default function Home() {
       </header>
 
       <div className={styles.contentWrapper}>
-        <BookHistoryDrawer books={history} onDelete={handleDeleteBook} />
+        <BookHistoryDrawer
+          sourceFiles={sourceHistory}
+          generatedBooks={history}
+          onDeleteBook={handleDeleteBook}
+          onDeleteSourceFile={handleDeleteSourceFile}
+        />
 
         <main className={styles.mainContent}>
           {/* Section 1: Upload */}
           <div className={styles.card}>
-            <UploadZone onFileSelect={setFile} />
+            <UploadZone onFileSelect={handleFileSelect} />
             {file && (
               <div style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--primary)' }}>
                 Selected: <strong>{file.name}</strong>

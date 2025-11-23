@@ -43,13 +43,14 @@ The theme is: {theme}.
 Humor level: {humor}/10.
 
 Output Format:
-1. First line: "Book Title: [Insert Creative Title Here]"
-2. Then output the story as a list of 10 pages.
-3. For each page, provide the 'Story Text' and a 'Illustration Description'.
-4. Separate pages with '---PAGE BREAK---'.
+1. The VERY FIRST line must be: "TITLE: [Insert Creative Title Here]"
+2. Do NOT include any preamble like "Here is a story" or "Sure".
+3. Then output the story as a list of 10 pages.
+4. For each page, provide the 'Story Text' and a 'Illustration Description'.
+5. Separate pages with '---PAGE BREAK---'.
 
 Example:
-Book Title: The Boy Who Spoke Truth
+TITLE: The Boy Who Spoke Truth
 Page 1 Text: Once upon a time...
 Page 1 Image: A bright sunny day in Medina...
 ---PAGE BREAK---
@@ -82,12 +83,26 @@ Write the story now.
             response = output.split("<|im_start|>assistant")[-1].strip()
             
             # Parse Title
-            title = "My Islamic Children's Book" # Default
-            lines = response.split('\n')
-            if lines and "Book Title:" in lines[0]:
-                title = lines[0].split("Book Title:", 1)[1].strip()
-                # Remove title line from response for page parsing
-                response = "\n".join(lines[1:]).strip()
+            import re
+            title = f"The Story of {theme}" # Default fallback
+            
+            # 1. Try strict regex for "TITLE: ..."
+            title_match = re.search(r"^TITLE:\s*(.*)$", response, re.MULTILINE | re.IGNORECASE)
+            if title_match:
+                raw_title = title_match.group(1).strip()
+                # Clean up quotes and extra spaces
+                title = raw_title.strip('"').strip("'").strip()
+                # Remove the title line from response
+                response = response.replace(title_match.group(0), "").strip()
+            else:
+                # 2. Fallback: Check first line if it looks like a title (short, no "Here is")
+                first_line = response.split('\n')[0].strip()
+                if len(first_line) < 60 and not any(x in first_line.lower() for x in ["here is", "sure", "certainly", "okay"]):
+                    title = first_line.strip('"').strip("'")
+                    response = "\n".join(response.split('\n')[1:]).strip()
+            
+            # Final cleanup of title just in case
+            title = title.replace("Book Title:", "").strip()
             
             pages = []
             raw_pages = response.split("---PAGE BREAK---")
