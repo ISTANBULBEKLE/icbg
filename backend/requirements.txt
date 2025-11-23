@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+pymupdf
+beautifulsoup4
+langchain
+langchain-community
+diffusers
+transformers
+accelerate
+reportlab
+torch
+requests
