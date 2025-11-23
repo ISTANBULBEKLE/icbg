@@ -1,0 +1,59 @@
+.main {
+  min-height: 100vh;
+  padding: 4rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.title {
+  font-size: 3rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  font-family: serif;
+  /* Should ideally use an Islamic-style font */
+}
+
+.subtitle {
+  font-size: 1.2rem;
+  color: #666;
+}
+
+.card {
+  background: white;
+  padding: 2rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.actions {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.button {
+  background-color: var(--primary);
+  color: white;
+  border: none;
+  padding: 1rem 3rem;
+  font-size: 1.2rem;
+  border-radius: 50px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 4px 15px rgba(30, 77, 69, 0.3);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(30, 77, 69, 0.4);
+}
+
+.button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}

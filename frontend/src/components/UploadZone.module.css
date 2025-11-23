@@ -1,0 +1,33 @@
+.container {
+    border: 2px dashed var(--secondary);
+    border-radius: 12px;
+    padding: 3rem;
+    text-align: center;
+    background-color: rgba(198, 168, 124, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    margin-bottom: 2rem;
+}
+
+.container:hover {
+    background-color: rgba(198, 168, 124, 0.2);
+    border-color: var(--primary);
+}
+
+.icon {
+    font-size: 3rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.text {
+    font-size: 1.2rem;
+    color: var(--text);
+    font-weight: 500;
+}
+
+.subtext {
+    font-size: 0.9rem;
+    color: #666;
+    margin-top: 0.5rem;
+}
