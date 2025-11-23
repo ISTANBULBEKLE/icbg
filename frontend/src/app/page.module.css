@@ -114,7 +114,9 @@
   flex: 1;
   max-width: 800px;
   min-width: 0;
-  /* Allows flex child to shrink below content size if needed */
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
 }
 
 .header {

@@ -17,7 +17,7 @@ class ContentEngine:
                 model=self.model_id,
                 device=device,
                 torch_dtype=torch.float32, # Use float32 for stability on MPS
-                max_new_tokens=1024,
+                max_new_tokens=2048, # Increased for 10 pages
             )
             print("LLM loaded successfully.")
         except Exception as e:
@@ -43,7 +43,7 @@ The theme is: {theme}.
 Humor level: {humor}/10.
 
 Output Format:
-You must output the story as a list of 5 pages.
+You must output the story as a list of 10 pages.
 For each page, provide the 'Story Text' and a 'Illustration Description'.
 Separate pages with '---PAGE BREAK---'.
 
@@ -70,6 +70,12 @@ Write the story now.
                 top_p=0.95,
                 repetition_penalty=1.15
             )[0]['generated_text']
+            
+            # DEBUG: Print raw output
+            print("RAW LLM OUTPUT:")
+            print(output)
+            print("-----------------")
+
             # Extract the assistant's response
             response = output.split("<|im_start|>assistant")[-1].strip()
             
@@ -80,29 +86,49 @@ Write the story now.
                 if not raw_page.strip():
                     continue
                     
-                # Simple parsing logic
+                # Robust parsing logic
                 lines = raw_page.strip().split('\n')
                 text = ""
                 image_prompt = ""
                 
+                current_section = None # 'text' or 'image'
+                
                 for line in lines:
-                    if "Text:" in line:
-                        text = line.split("Text:", 1)[1].strip()
-                    elif "Image:" in line:
-                        image_prompt = line.split("Image:", 1)[1].strip()
-                    elif "Description:" in line: # Handle variation
-                         image_prompt = line.split("Description:", 1)[1].strip()
+                    clean_line = line.strip()
+                    if not clean_line:
+                        continue
+                        
+                    if "Text:" in clean_line:
+                        current_section = 'text'
+                        text += clean_line.split("Text:", 1)[1].strip() + " "
+                    elif "Image:" in clean_line:
+                        current_section = 'image'
+                        image_prompt += clean_line.split("Image:", 1)[1].strip() + " "
+                    elif "Description:" in clean_line:
+                        current_section = 'image'
+                        image_prompt += clean_line.split("Description:", 1)[1].strip() + " "
+                    else:
+                        # Append to current section if it's a continuation
+                        if current_section == 'text':
+                            text += clean_line + " "
+                        elif current_section == 'image':
+                            image_prompt += clean_line + " "
+                        else:
+                            # If no section defined yet, assume it's text
+                            current_section = 'text'
+                            text += clean_line + " "
                 
                 # Fallback if parsing failed but content exists
-                if not text and len(lines) > 0:
-                    text = lines[0]
-                if not image_prompt:
+                if not text.strip() and len(lines) > 0:
+                    text = raw_page.strip()
+                if not image_prompt.strip():
                     image_prompt = f"Illustration for page {i+1} about {theme}"
                 
-                pages.append({"text": text, "image_prompt": image_prompt})
+                pages.append({"text": text.strip(), "image_prompt": image_prompt.strip()})
             
             # Ensure we have at least one page
             if not pages:
+                print("Parsing failed to find pages. Using raw response.")
                 pages.append({"text": response, "image_prompt": f"Scene about {theme}"})
                 
             return pages[:10] # Limit to 10 pages max

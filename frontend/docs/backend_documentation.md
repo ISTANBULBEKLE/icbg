@@ -40,11 +40,14 @@ The backend is a FastAPI application that orchestrates the AI pipeline. It handl
 ### 2. `ContentEngine` (`services/llm.py`)
 -   **Library**: `transformers`
 -   **Model**: `HuggingFaceTB/SmolLM-1.7B-Instruct`
+-   **Configuration**:
+    -   **Precision**: `float32` (for stability on MPS).
+    -   **Context**: Increased `max_new_tokens` to 2048.
 -   **Logic**:
     -   Constructs a prompt with system instructions (Persona: Children's Author).
     -   Injects the extracted source text.
-    -   Requests a structured output (5 pages, Text + Image Prompts).
-    -   Parses the raw LLM output into a structured list of pages.
+    -   Requests a structured output (**10 pages**, Text + Image Prompts).
+    -   **Robust Parsing**: Handles unstructured output and missing prefixes.
 
 ### 3. `ImageEngine` (`services/image_gen.py`)
 -   **Library**: `diffusers`
@@ -61,6 +64,6 @@ The backend is a FastAPI application that orchestrates the AI pipeline. It handl
     -   Creates a canvas.
     -   Draws a Title Page.
     -   Iterates through pages:
-        -   Draws text (top half).
-        -   Draws generated image (bottom half).
+        -   **Image**: Drawn at the **Top Half** (y=350-650).
+        -   **Text**: Drawn at the **Bottom Half** (y=400 downwards).
     -   Saves the final PDF.

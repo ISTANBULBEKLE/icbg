@@ -15,9 +15,14 @@ The frontend is a single-page application built with Next.js 16. It provides an 
 
 ### `BookHistoryDrawer.tsx`
 -   **Purpose**: Displays a list of the last 5 generated books.
--   **Props**: `books: Book[]`
+-   **Props**: 
+    -   `books: Book[]`
+    -   `onDelete: (id: string) => void`
 -   **Styling**: Sticky sidebar on the left.
 -   **Persistence**: Reads/Writes to browser `localStorage` key `bookHistory`.
+-   **Features**:
+    -   **Download**: Link to download the PDF.
+    -   **Delete**: Button to remove the book from history and storage.
 
 ### `UploadZone.tsx`
 -   **Purpose**: Drag-and-drop file upload area.

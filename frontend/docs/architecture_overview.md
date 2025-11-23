@@ -48,11 +48,13 @@ icbg/
 │   ├── temp/                   # Temporary uploads
 │   ├── generated_books/        # Output PDFs
 │   └── generated_images/       # Intermediate images
-└── frontend/
-    ├── src/
-    │   ├── app/
-    │   │   ├── page.tsx        # Main UI Controller
-    │   │   └── page.module.css # Styles
-    │   └── components/         # Reusable UI Components
-    └── docs/                   # Project Documentation
+├── frontend/
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── page.tsx        # Main UI Controller
+│   │   │   └── page.module.css # Styles
+│   │   └── components/         # Reusable UI Components
+│   └── docs/                   # Project Documentation
+├── Makefile                    # Build & Run commands
+└── start-dev.sh                # Robust startup script (handles process cleanup)
 ```

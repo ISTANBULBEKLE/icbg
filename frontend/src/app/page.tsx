@@ -173,27 +173,38 @@ export default function Home() {
         <BookHistoryDrawer books={history} onDelete={handleDeleteBook} />
 
         <main className={styles.mainContent}>
+          {/* Section 1: Upload */}
           <div className={styles.card}>
             <UploadZone onFileSelect={setFile} />
-
             {file && (
-              <>
-                <div style={{ textAlign: 'center', marginBottom: '2rem', color: 'var(--primary)' }}>
-                  Selected: <strong>{file.name}</strong>
-                </div>
-
-                <DocumentSegmentation
-                  segmentation={segmentation}
-                  onChange={handleSegmentationChange}
-                />
-
-                <BookSpecs specs={specs} onChange={handleSpecChange} />
-              </>
+              <div style={{ textAlign: 'center', marginTop: '1rem', color: 'var(--primary)' }}>
+                Selected: <strong>{file.name}</strong>
+              </div>
             )}
+          </div>
 
+          {/* Section 2: Segmentation */}
+          {file && (
+            <div className={styles.card}>
+              <DocumentSegmentation
+                segmentation={segmentation}
+                onChange={handleSegmentationChange}
+              />
+            </div>
+          )}
+
+          {/* Section 3: Specs */}
+          {file && (
+            <div className={styles.card}>
+              <BookSpecs specs={specs} onChange={handleSpecChange} />
+            </div>
+          )}
+
+          {/* Section 4: Actions */}
+          <div className={styles.card}>
             {/* Progress Bar Area */}
             {(isGenerating || progress > 0) && (
-              <div style={{ marginTop: '2rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}>
+              <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f5f5f5', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                   <span>{statusMessage}</span>
                   <span>{progress}%</span>
@@ -211,7 +222,7 @@ export default function Home() {
               </div>
             )}
 
-            <div className={styles.actions}>
+            <div className={styles.actions} style={{ marginTop: 0 }}>
               {!downloadUrl ? (
                 <button
                   className={styles.button}

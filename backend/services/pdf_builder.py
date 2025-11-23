@@ -26,31 +26,53 @@ class PDFGenerator:
 
         # Content Pages
         for i, page in enumerate(pages):
-            # Text
-            text = page.get("text", "")
-            c.setFont("Helvetica", 12)
-            text_object = c.beginText(50, height - 50)
-            for line in text.split('\n'):
-                text_object.textLine(line)
-            c.drawText(text_object)
-
-            # Image
+            # Image (Top Half)
             image_path = page.get("image_path")
             if image_path and os.path.exists(image_path):
                 try:
-                    # Draw image (adjust coordinates and size as needed)
-                    # Centered image
+                    # Draw image at the top
+                    # Page height is ~792 points (Letter)
+                    # Let's place image from y=400 to y=700 (height 300)
                     img_width = 400
                     img_height = 300
                     x = (width - img_width) / 2
-                    y = height - 450
+                    y = height - 350 # Top margin
                     c.drawImage(image_path, x, y, width=img_width, height=img_height, preserveAspectRatio=True)
                 except Exception as e:
                     print(f"Error drawing image {image_path}: {e}")
-                    c.drawString(50, height - 420, f"[Error loading image]")
+                    c.drawString(50, height - 200, f"[Error loading image]")
             else:
                 # Placeholder
-                c.drawString(50, height - 420, f"[Image Placeholder]")
+                c.drawString(50, height - 200, f"[Image Placeholder]")
+
+            # Text (Bottom Half)
+            text = page.get("text", "")
+            c.setFont("Helvetica", 14) # Slightly larger font
+            
+            # Start text below the image area
+            text_y = height - 400 
+            
+            text_object = c.beginText(50, text_y)
+            # Simple word wrap logic could be added here if needed, 
+            # but for now we rely on reportlab's textLine or basic splitting
+            # Let's use a text object which handles newlines, but not automatic wrapping for long lines.
+            # For better wrapping, we'd need Paragraph from platypus, but let's stick to canvas for simplicity 
+            # and just ensure we split by newlines.
+            
+            # Basic manual wrapping for long lines
+            max_chars_per_line = 60
+            wrapped_lines = []
+            for line in text.split('\n'):
+                while len(line) > max_chars_per_line:
+                    split_idx = line[:max_chars_per_line].rfind(' ')
+                    if split_idx == -1: split_idx = max_chars_per_line
+                    wrapped_lines.append(line[:split_idx])
+                    line = line[split_idx:].strip()
+                wrapped_lines.append(line)
+
+            for line in wrapped_lines:
+                text_object.textLine(line)
+            c.drawText(text_object)
 
             c.showPage()
 

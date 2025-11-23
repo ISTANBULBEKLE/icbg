@@ -8,7 +8,7 @@ The system is designed to run **locally** on consumer hardware (e.g., MacBook M1
 ### Model: `HuggingFaceTB/SmolLM-1.7B-Instruct`
 -   **Type**: Small Language Model (SLM)
 -   **Size**: 1.7 Billion Parameters
--   **Format**: PyTorch (`float16` on MPS)
+-   **Format**: PyTorch (`float32` on MPS for stability)
 -   **Why this model?**
     -   It fits easily into RAM (requires ~3-4GB).
     -   It is instruction-tuned, meaning it follows prompts like "Write a story..." well.
@@ -19,10 +19,10 @@ We use a structured prompt to guide the model:
 ```text
 System: You are a creative children's book author...
 Goal: Adapt source text for {age_group}...
-Format: Output 5 pages with 'Text:' and 'Image:'...
+Format: Output 10 pages with 'Text:' and 'Image:'...
 User: Source Material: {extracted_text}
 ```
-This ensures the model doesn't just summarize but actually *adapts* the content into a narrative format.
+This ensures the model doesn't just summarize but actually *adapts* the content into a narrative format. We request **10 pages** to create a substantial book.
 
 ## 2. Image Generation (The Illustrator)
 
