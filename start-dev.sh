@@ -20,6 +20,13 @@ cleanup() {
 # Trap SIGINT (Ctrl+C) and SIGTERM
 trap cleanup SIGINT SIGTERM EXIT
 
+# Pre-cleanup: Kill any existing processes on ports 3000 and 8000
+echo "Checking for existing processes..."
+lsof -t -i:8000 | xargs kill -9 2>/dev/null
+lsof -t -i:3000 | xargs kill -9 2>/dev/null
+# Remove Next.js lock file if it exists
+rm -f frontend/.next/dev/lock
+
 echo "Starting Backend..."
 cd backend
 source venv/bin/activate

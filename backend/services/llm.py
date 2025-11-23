@@ -24,10 +24,10 @@ class ContentEngine:
             print(f"Failed to load LLM: {e}")
             self.pipe = None
 
-    async def generate_story(self, source_text: str, params: dict) -> list:
+    async def generate_story(self, source_text: str, params: dict) -> dict:
         if not self.pipe:
             print("LLM not loaded, returning dummy data.")
-            return [{"text": "Error: Model not loaded.", "image_prompt": "Error icon"}]
+            return {"title": "Error Generating Title", "pages": [{"text": "Error: Model not loaded.", "image_prompt": "Error icon"}]}
 
         theme = params.get("theme", "General Islamic Values")
         age_group = params.get("ageGroup", "6-8")
@@ -43,11 +43,13 @@ The theme is: {theme}.
 Humor level: {humor}/10.
 
 Output Format:
-You must output the story as a list of 10 pages.
-For each page, provide the 'Story Text' and a 'Illustration Description'.
-Separate pages with '---PAGE BREAK---'.
+1. First line: "Book Title: [Insert Creative Title Here]"
+2. Then output the story as a list of 10 pages.
+3. For each page, provide the 'Story Text' and a 'Illustration Description'.
+4. Separate pages with '---PAGE BREAK---'.
 
 Example:
+Book Title: The Boy Who Spoke Truth
 Page 1 Text: Once upon a time...
 Page 1 Image: A bright sunny day in Medina...
 ---PAGE BREAK---
@@ -78,6 +80,14 @@ Write the story now.
 
             # Extract the assistant's response
             response = output.split("<|im_start|>assistant")[-1].strip()
+            
+            # Parse Title
+            title = "My Islamic Children's Book" # Default
+            lines = response.split('\n')
+            if lines and "Book Title:" in lines[0]:
+                title = lines[0].split("Book Title:", 1)[1].strip()
+                # Remove title line from response for page parsing
+                response = "\n".join(lines[1:]).strip()
             
             pages = []
             raw_pages = response.split("---PAGE BREAK---")
@@ -127,12 +137,38 @@ Write the story now.
                 pages.append({"text": text.strip(), "image_prompt": image_prompt.strip()})
             
             # Ensure we have at least one page
-            if not pages:
-                print("Parsing failed to find pages. Using raw response.")
-                pages.append({"text": response, "image_prompt": f"Scene about {theme}"})
+            if not pages or (len(pages) == 1 and len(pages[0]['text']) > 500):
+                print("Parsing failed or single long page detected. Using Smart Splitter.")
                 
-            return pages[:10] # Limit to 10 pages max
+                # Use the raw response (or the single page text)
+                full_text = response
+                if pages:
+                    full_text = pages[0]['text']
+                
+                # Split into sentences (simple heuristic)
+                import re
+                sentences = re.split(r'(?<=[.!?]) +', full_text)
+                
+                # Group sentences into pages (e.g., 3 sentences per page)
+                sentences_per_page = 3
+                chunks = [sentences[i:i + sentences_per_page] for i in range(0, len(sentences), sentences_per_page)]
+                
+                pages = []
+                for i, chunk in enumerate(chunks):
+                    page_text = " ".join(chunk).strip()
+                    if not page_text: continue
+                    
+                    # Generate a generic image prompt based on the chunk
+                    # Ideally we'd ask the LLM, but for speed/fallback we use the text + theme
+                    image_prompt = f"Illustration for: {page_text[:50]}..., theme: {theme}"
+                    
+                    pages.append({"text": page_text, "image_prompt": image_prompt})
+                
+                # Ensure we have at least 10 pages if possible, or just use what we have
+                # If we have too many, truncate. If too few, that's okay for fallback.
+            
+            return {"title": title, "pages": pages[:10]}
 
         except Exception as e:
             print(f"Error generating story: {e}")
-            return [{"text": "Sorry, I couldn't generate a story at this time.", "image_prompt": "Sad robot"}]
+            return {"title": "Error", "pages": [{"text": "Sorry, I couldn't generate a story at this time.", "image_prompt": "Sad robot"}]}

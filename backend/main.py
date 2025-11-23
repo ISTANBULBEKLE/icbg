@@ -60,38 +60,43 @@ async def process_book_generation(job_id: str, filename: str, specs: dict, segme
         jobs[job_id]["message"] = "Generating story..."
         
         # 2. Story Generation
-        pages = await content_engine.generate_story(source_text, specs)
-        
+        # Content Generation
         jobs[job_id]["progress"] = 40
+        jobs[job_id]["message"] = "Generating story and title..."
+        
+        story_data = await content_engine.generate_story(source_text, specs)
+        pages = story_data.get("pages", [])
+        book_title = story_data.get("title", "My Islamic Children's Book")
+        
+        # Image Generation
+        jobs[job_id]["progress"] = 60
         jobs[job_id]["message"] = "Creating illustrations..."
         
-        # 3. Image Generation
-        total_pages = len(pages)
         for i, page in enumerate(pages):
-            prompt = page.get("image_prompt", "")
-            if prompt:
+            image_prompt = page.get("image_prompt", "")
+            if image_prompt:
                 # Add style modifiers based on theme
-                style_prompt = f"children's book illustration, {specs.get('theme', 'islamic art style')}, {prompt}, warm colors, soft lighting, high quality"
+                style_prompt = f"children's book illustration, {specs.get('theme', 'islamic art style')}, {image_prompt}, warm colors, soft lighting, high quality"
                 image_path = await image_engine.generate_image(style_prompt)
                 page["image_path"] = image_path
             
-            # Update progress incrementally
-            current_progress = 40 + int((i + 1) / total_pages * 40) # 40% to 80%
-            jobs[job_id]["progress"] = current_progress
-            jobs[job_id]["message"] = f"Illustrating page {i+1} of {total_pages}..."
+            # Update progress per page
+            jobs[job_id]["progress"] = 60 + int((i / len(pages)) * 30)
+            jobs[job_id]["message"] = f"Illustrating page {i+1} of {len(pages)}..."
         
-        jobs[job_id]["progress"] = 85
+        # PDF Construction
+        jobs[job_id]["progress"] = 90
         jobs[job_id]["message"] = "Assembling PDF..."
         
-        # 4. PDF Construction
         output_filename = f"book_{job_id}.pdf"
-        output_path = await pdf_generator.create_book_pdf(pages, output_filename)
+        output_path = await pdf_generator.create_book_pdf(pages, output_filename, title=book_title)
         
         jobs[job_id]["progress"] = 100
         jobs[job_id]["status"] = "completed"
         jobs[job_id]["message"] = "Book generated successfully!"
         jobs[job_id]["result_url"] = f"/download/{job_id}"
         jobs[job_id]["file_path"] = output_path
+        jobs[job_id]["book_title"] = book_title # Pass title to frontend
         
     except Exception as e:
         jobs[job_id]["status"] = "failed"

@@ -131,11 +131,12 @@ export default function Home() {
         if (eventData.status === 'completed') {
           const url = `http://localhost:8000${eventData.result_url}`;
           setDownloadUrl(url);
+          const bookTitle = eventData.book_title || file.name.replace(/\.[^/.]+$/, "");
 
           // Add to history
           addToHistory({
             id: jobId,
-            title: file.name.replace(/\.[^/.]+$/, ""), // Remove extension
+            title: bookTitle,
             date: new Date().toLocaleDateString(),
             url: url
           });
