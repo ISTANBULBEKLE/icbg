@@ -15,16 +15,6 @@ class DocumentIngestionService:
     ) -> str:
         """
         Extract text from PDF with optional section filtering.
-        
-        Args:
-            file_path: Path to the PDF file
-            section_description: Description of the section to extract (e.g., "Surah Maryam")
-            additional_context: Additional context to help identify the section
-            page_start: Starting page number (1-indexed)
-            page_end: Ending page number (1-indexed)
-            
-        Returns:
-            Extracted text from the specified section or full document
         """
         try:
             doc = fitz.open(file_path)
@@ -42,25 +32,23 @@ class DocumentIngestionService:
             # Extract text from specified page range
             extracted_text = ""
             for page_num in range(start_idx, end_idx):
-                page = doc[page_num]
-                extracted_text += page.get_text()
+                if page_num < total_pages:
+                    page = doc[page_num]
+                    extracted_text += page.get_text() + "\n"
             
             doc.close()
             
-            # If section description provided, use AI to filter (TODO: implement LLM filtering)
+            # Prepend context if provided
             if section_description:
-                # TODO: Use local LLM (Ollama) to identify and extract relevant sections
-                # For now, we'll return the page range text with a note
-                extracted_text = f"[Section: {section_description}]\n\n{extracted_text}"
-                if additional_context:
-                    extracted_text = f"[Context: {additional_context}]\n{extracted_text}"
+                extracted_text = f"FOCUS SECTION: {section_description}\nCONTEXT: {additional_context}\n\nDOCUMENT CONTENT:\n{extracted_text}"
             
-            return extracted_text
+            return extracted_text.strip()
             
         except Exception as e:
-            return f"Error extracting PDF: {str(e)}"
+            print(f"Error extracting PDF: {e}")
+            return ""
 
     async def ingest_web(self, url: str) -> str:
-        # TODO: Implement Web parsing using BeautifulSoup
-        return "Extracted text from Web"
+        # Placeholder for web ingestion
+        return ""
 

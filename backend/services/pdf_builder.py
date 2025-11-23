@@ -34,9 +34,23 @@ class PDFGenerator:
                 text_object.textLine(line)
             c.drawText(text_object)
 
-            # Image Placeholder (or actual image if we had one)
-            # c.rect(50, height - 400, 500, 300)
-            c.drawString(50, height - 420, f"[Image for Page {i+1}]")
+            # Image
+            image_path = page.get("image_path")
+            if image_path and os.path.exists(image_path):
+                try:
+                    # Draw image (adjust coordinates and size as needed)
+                    # Centered image
+                    img_width = 400
+                    img_height = 300
+                    x = (width - img_width) / 2
+                    y = height - 450
+                    c.drawImage(image_path, x, y, width=img_width, height=img_height, preserveAspectRatio=True)
+                except Exception as e:
+                    print(f"Error drawing image {image_path}: {e}")
+                    c.drawString(50, height - 420, f"[Error loading image]")
+            else:
+                # Placeholder
+                c.drawString(50, height - 420, f"[Image Placeholder]")
 
             c.showPage()
 

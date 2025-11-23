@@ -1,13 +1,125 @@
-.main {
+.pageWrapper {
   min-height: 100vh;
-  padding: 4rem 2rem;
-  max-width: 800px;
+  padding: 2rem;
+  max-width: 1200px;
   margin: 0 auto;
+}
+
+.contentWrapper {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+  /* Aligns drawer and card at the top */
+}
+
+.drawer {
+  width: 300px;
+  background: white;
+  padding: 1.5rem;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  height: fit-content;
+  position: sticky;
+  top: 2rem;
+  flex-shrink: 0;
+  /* Prevent drawer from shrinking */
+}
+
+.drawerTitle {
+  font-size: 1.2rem;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+}
+
+.bookList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bookItem {
+  padding: 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.bookItem:last-child {
+  border-bottom: none;
+}
+
+.bookInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bookTitle {
+  font-weight: bold;
+  font-size: 0.9rem;
+  color: #333;
+  /* Fix text overflow */
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.bookDate {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.bookActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.downloadLink {
+  font-size: 0.8rem;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.downloadLink:hover {
+  text-decoration: underline;
+}
+
+.deleteButton {
+  background: none;
+  border: none;
+  color: #ff4d4f;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.deleteButton:hover {
+  text-decoration: underline;
+}
+
+.emptyState {
+  color: #888;
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.mainContent {
+  flex: 1;
+  max-width: 800px;
+  min-width: 0;
+  /* Allows flex child to shrink below content size if needed */
 }
 
 .header {
   text-align: center;
-  margin-bottom: 4rem;
+  margin-bottom: 3rem;
 }
 
 .title {
@@ -33,17 +145,40 @@
 .actions {
   margin-top: 2rem;
   text-align: center;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .button {
   background-color: var(--primary);
   color: white;
   border: none;
-  padding: 1rem 3rem;
-  font-size: 1.2rem;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
   border-radius: 50px;
   transition: transform 0.2s, box-shadow 0.2s;
   box-shadow: 0 4px 15px rgba(30, 77, 69, 0.3);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.buttonSecondary {
+  background-color: white;
+  color: var(--primary);
+  border: 2px solid var(--primary);
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 50px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.buttonSecondary:hover {
+  background-color: #f0fdfa;
+  transform: translateY(-2px);
 }
 
 .button:hover {

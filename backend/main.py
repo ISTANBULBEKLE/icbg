@@ -8,6 +8,9 @@ import asyncio
 import json
 import uuid
 from services.pdf_builder import PDFGenerator
+from services.ingestion import DocumentIngestionService
+from services.llm import ContentEngine
+from services.image_gen import ImageEngine
 
 app = FastAPI(title="Islamic Children Book Generator API")
 
@@ -23,42 +26,64 @@ app.add_middleware(
 # In-memory job store
 jobs = {}
 
+# Initialize Services
+print("Initializing Services...")
 pdf_generator = PDFGenerator()
+ingestion_service = DocumentIngestionService()
+content_engine = ContentEngine()
+image_engine = ImageEngine()
+print("Services Initialized.")
 
-async def process_book_generation(job_id: str, filename: str, specs: dict):
+async def process_book_generation(job_id: str, filename: str, specs: dict, segmentation: dict):
     """
-    Simulates the book generation pipeline with progress updates.
+    Executes the book generation pipeline.
     """
     try:
         jobs[job_id]["status"] = "processing"
-        jobs[job_id]["progress"] = 0
+        jobs[job_id]["progress"] = 5
         jobs[job_id]["message"] = "Starting ingestion..."
         
-        # Simulate Ingestion
-        await asyncio.sleep(2)
-        jobs[job_id]["progress"] = 20
-        jobs[job_id]["message"] = "Analyzing content..."
+        # 1. Ingestion
+        file_path = f"temp/{filename}"
+        source_text = await ingestion_service.ingest_pdf(
+            file_path,
+            section_description=segmentation.get("sectionDescription"),
+            additional_context=segmentation.get("additionalContext"),
+            page_start=segmentation.get("pageStart"),
+            page_end=segmentation.get("pageEnd")
+        )
         
-        # Simulate Content Generation
-        await asyncio.sleep(2)
-        jobs[job_id]["progress"] = 40
+        if not source_text:
+            raise Exception("Failed to extract text from document.")
+            
+        jobs[job_id]["progress"] = 20
         jobs[job_id]["message"] = "Generating story..."
         
-        # Simulate Image Generation
-        await asyncio.sleep(3)
-        jobs[job_id]["progress"] = 70
+        # 2. Story Generation
+        pages = await content_engine.generate_story(source_text, specs)
+        
+        jobs[job_id]["progress"] = 40
         jobs[job_id]["message"] = "Creating illustrations..."
         
-        # Simulate PDF Construction
-        await asyncio.sleep(2)
-        jobs[job_id]["progress"] = 90
+        # 3. Image Generation
+        total_pages = len(pages)
+        for i, page in enumerate(pages):
+            prompt = page.get("image_prompt", "")
+            if prompt:
+                # Add style modifiers based on theme
+                style_prompt = f"children's book illustration, {specs.get('theme', 'islamic art style')}, {prompt}, warm colors, soft lighting, high quality"
+                image_path = await image_engine.generate_image(style_prompt)
+                page["image_path"] = image_path
+            
+            # Update progress incrementally
+            current_progress = 40 + int((i + 1) / total_pages * 40) # 40% to 80%
+            jobs[job_id]["progress"] = current_progress
+            jobs[job_id]["message"] = f"Illustrating page {i+1} of {total_pages}..."
+        
+        jobs[job_id]["progress"] = 85
         jobs[job_id]["message"] = "Assembling PDF..."
         
-        # Generate Dummy PDF
-        pages = [
-            {"text": f"This is a story about {specs.get('theme', 'something')}.\nIdeally suited for {specs.get('ageGroup', 'children')}."},
-            {"text": "Once upon a time..."}
-        ]
+        # 4. PDF Construction
         output_filename = f"book_{job_id}.pdf"
         output_path = await pdf_generator.create_book_pdf(pages, output_filename)
         
@@ -114,7 +139,18 @@ async def generate_book(
         }
     }
     
-    background_tasks.add_task(process_book_generation, job_id, file.filename, jobs[job_id]["specs"])
+    background_tasks.add_task(
+        process_book_generation, 
+        job_id, 
+        file.filename, 
+        jobs[job_id]["specs"],
+        {
+            "sectionDescription": sectionDescription,
+            "additionalContext": additionalContext,
+            "pageStart": pageStart,
+            "pageEnd": pageEnd
+        }
+    )
     
     return {"job_id": job_id, "status": "submitted"}
 
