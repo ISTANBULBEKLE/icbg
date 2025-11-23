@@ -16,7 +16,7 @@ class ContentEngine:
                 "text-generation",
                 model=self.model_id,
                 device=device,
-                torch_dtype=torch.float16 if device == "mps" else torch.float32,
+                torch_dtype=torch.float32, # Use float32 for stability on MPS
                 max_new_tokens=1024,
             )
             print("LLM loaded successfully.")
@@ -63,7 +63,13 @@ Write the story now.
 """
         
         try:
-            output = self.pipe(prompt)[0]['generated_text']
+            output = self.pipe(
+                prompt,
+                do_sample=True,
+                temperature=0.7,
+                top_p=0.95,
+                repetition_penalty=1.15
+            )[0]['generated_text']
             # Extract the assistant's response
             response = output.split("<|im_start|>assistant")[-1].strip()
             
