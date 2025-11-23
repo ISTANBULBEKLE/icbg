@@ -72,6 +72,15 @@ async def process_book_generation(job_id: str, filename: str, specs: dict):
         jobs[job_id]["status"] = "failed"
         jobs[job_id]["message"] = f"Error: {str(e)}"
         print(f"Job {job_id} failed: {e}")
+    finally:
+        # Cleanup temporary file
+        file_path = f"temp/{filename}"
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"Cleaned up temporary file: {file_path}")
+            except Exception as cleanup_error:
+                print(f"Failed to cleanup file {file_path}: {cleanup_error}")
 
 @app.post("/generate")
 async def generate_book(
